@@ -6,7 +6,7 @@ This is a custom static blog renderer written in **net5** and based on Jekyll. A
 
 Install latest version using `dotnet` client:
 
-> dotnet tool install --global njekyll --version 0.0.1-alpha1
+> dotnet tool install --global njekyll --version 0.0.1-alpha2
 
 ## Run
 
