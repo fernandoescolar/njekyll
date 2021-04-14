@@ -5,6 +5,9 @@
     <TargetFramework>net5.0</TargetFramework>
     <RuntimeIdentifiers>win-x64;win-x86;linux-x64;osx-x64</RuntimeIdentifiers>
     <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>njekyll</ToolCommandName>
+    <Description>Configuration as code application</Description>
   </PropertyGroup>
 
   <ItemGroup>
