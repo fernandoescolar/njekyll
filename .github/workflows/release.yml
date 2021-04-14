@@ -102,25 +102,8 @@ jobs:
           files: 'zip/*.zip;nupkg/*.nupkg'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           release-tag: ${{ steps.vars.outputs.tag }}
-  npm:
-    needs: release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set Version
-        working-directory: ./src/npm
-        run: |
-          GITHUB_VERSION="${{ github.ref }}"
-          GITHUB_VERSION=(${GITHUB_VERSION##*/})
-          RELEASE_VERSION="${GITHUB_VERSION//v}"
-          npm version $RELEASE_VERSION
-      - name: Publish package
-        working-directory: ./src/npm
-        run: |
-          npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
   cleanup:
-    needs: npm
+    needs: release
     runs-on: ubuntu-latest
     steps:
       - uses: geekyeggo/delete-artifact@v1
