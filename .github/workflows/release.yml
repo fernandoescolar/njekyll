@@ -1,0 +1,130 @@
+on:
+  push:
+    tags:
+    - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10git pusdh
+
+name: New Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ linux-x64, osx-x64, win-x64, win-x86 ]
+    name: Build NJekyll for  ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '5.0.x'
+      - name: Build Application
+        run: |
+          RID="${{ matrix.os }}"
+          GITHUB_VERSION="${{ github.ref }}"
+          GITHUB_VERSION=(${GITHUB_VERSION##*/})
+          RELEASE_VERSION="${GITHUB_VERSION//v}"
+          ARRAY_VERSION=(${RELEASE_VERSION//-/ })
+          VERSION="${ARRAY_VERSION[0]}"
+          VERSION_SUFFIX="${ARRAY_VERSION[1]}"
+          dotnet publish ./src/NJekyll/njekyll.csproj -c Release -r $RID --self-contained true  -p:AssemblyVersion=$VERSION -p:VersionPrefix=$VERSION -p:VersionSuffix=$VERSION_SUFFIX
+          zip -r -j "njekyll_$RELEASE_VERSION_$RID.zip" "./src/NJekyll/bin/Release/net5.0/$RID/publish/"
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: zip
+          path: ./*.zip
+          retention-days: 1
+  pack:
+    runs-on: ubuntu-latest
+    name: Build NJekyll packages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 5.0.100-rc.2.20479.15 # latest sdk lang 9.0
+      - name: Create NuGet packages
+        run: |
+          GITHUB_VERSION="${{ github.ref }}"
+          GITHUB_VERSION=(${GITHUB_VERSION##*/})
+          RELEASE_VERSION="${GITHUB_VERSION//v}"
+          ARRAY_VERSION=(${RELEASE_VERSION//-/ })
+          VERSION="${ARRAY_VERSION[0]}"
+          VERSION_SUFFIX="${ARRAY_VERSION[1]}"
+          dotnet pack -c Release -o nupkg ./src/NJekyll/njekyll.csproj -p:AssemblyVersion=$VERSION -p:VersionPrefix=$VERSION -p:VersionSuffix=$VERSION_SUFFIX
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: nupkg
+          path: ./nupkg/*.nupkg
+          retention-days: 1
+  nugets:
+    needs: pack
+    runs-on: ubuntu-latest
+    name: Publish NJekyll packages
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v1
+        with:
+          name: nupkg
+      - name: Publish NuGet packages
+        run: |
+          dotnet nuget push ./nupkg/**/*.nupkg -k ${{ secrets.NUGET_KEY }} -s https://api.nuget.org/v3/index.json
+  release:
+    needs: [ build, pack ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v1
+        with:
+          name: zip
+      - name: Download Artifact
+        uses: actions/download-artifact@v1
+        with:
+          name: nupkg
+      - name: Get Version
+        id: vars
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          release_name: Release ${{ steps.vars.outputs.tag }}
+          draft: false
+          prerelease: false
+      - uses: AButler/upload-release-assets@v2.0
+        with:
+          files: 'zip/*.zip;nupkg/*.nupkg'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          release-tag: ${{ steps.vars.outputs.tag }}
+  npm:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set Version
+        working-directory: ./src/npm
+        run: |
+          GITHUB_VERSION="${{ github.ref }}"
+          GITHUB_VERSION=(${GITHUB_VERSION##*/})
+          RELEASE_VERSION="${GITHUB_VERSION//v}"
+          npm version $RELEASE_VERSION
+      - name: Publish package
+        working-directory: ./src/npm
+        run: |
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+  cleanup:
+    needs: npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: geekyeggo/delete-artifact@v1
+        with:
+          name: |
+            zip
+            nupkg
