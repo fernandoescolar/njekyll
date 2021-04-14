@@ -29,7 +29,7 @@ jobs:
           VERSION="${ARRAY_VERSION[0]}"
           VERSION_SUFFIX="${ARRAY_VERSION[1]}"
           dotnet publish ./src/NJekyll/njekyll.csproj -c Release -r $RID --self-contained true  -p:AssemblyVersion=$VERSION -p:VersionPrefix=$VERSION -p:VersionSuffix=$VERSION_SUFFIX
-          zip -r -j "njekyll_$RELEASE_VERSION_$RID.zip" "./src/NJekyll/bin/Release/net5.0/$RID/publish/"
+          zip -r "njekyll_$RELEASE_VERSION_$RID.zip" "./src/NJekyll/bin/Release/net5.0/$RID/publish/"
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
         with:
