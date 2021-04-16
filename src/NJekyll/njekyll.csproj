@@ -12,7 +12,6 @@
 
   <ItemGroup>
     <PackageReference Include="Fluid.Core" Version="2.0.3" />
-    <PackageReference Include="Highlight.Standard.Generic" Version="4.1.0" />
     <PackageReference Include="Markdig" Version="0.24.0" />
     <PackageReference Include="Microsoft.ClearScript.V8" Version="7.1.1" />
     <PackageReference Include="Microsoft.ClearScript.V8.Native.linux-x64" Version="7.1.1" />
@@ -30,9 +29,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="highlight.pack.js">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="prism.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
